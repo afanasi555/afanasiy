@@ -44,8 +44,8 @@
             font-size: 16px;
             cursor: pointer;
         }
-        #nextLevelBtn, #generateLevelsBtn {
-            display: none;
+        #generateLevelsBtn {
+            display: none; /* Кнопка добавления уровней скрыта по умолчанию */
         }
         #finalMessage {
             display: none;
@@ -214,7 +214,11 @@
         function endGame(message) {
             gameOver = true;
             document.getElementById('restartBtn').style.display = 'inline-block';
-            document.getElementById('generateLevelsBtn').style.display = 'inline-block';
+            if (currentLevel === levels) {
+                document.getElementById('generateLevelsBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('generateLevelsBtn').style.display = 'none';
+            }
             if (message === 'Вы выиграли!') {
                 document.getElementById('nextLevelBtn').style.display = 'inline-block';
             } else {
