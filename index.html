@@ -124,38 +124,39 @@
             if (gameOver) return;
 
             let moveMade = false;
-
-            // AI блокирует выигрышный ход игрока с вероятностью 98%
-            if (Math.random() <= 0.98) {
-                for (let i = 0; i < boardSize; i++) {
-                    for (let j = 0; j < boardSize; j++) {
-                        if (!board[i][j]) {
+            
+            // Проверка на блокировку выигрыша игрока
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    if (!board[i][j]) {
+                        board[i][j] = '❌';
+                        if (checkVictory('❌')) {
+                            // Блокируем выигрышный ход игрока
                             board[i][j] = '⭕';
-                            if (checkVictory('⭕')) {
-                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).textContent = '⭕';
-                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.remove('empty');
-                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.add('zero');
-                                moveMade = true;
-                                break;
-                            }
-                            board[i][j] = null;
+                            document.querySelector(`[data-row="${i}"][data-col="${j}"]`).textContent = '⭕';
+                            document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.remove('empty');
+                            document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.add('zero');
+                            moveMade = true;
+                            return; // Выход после выполнения блока
                         }
+                        board[i][j] = null;
                     }
-                    if (moveMade) break;
                 }
             }
 
-            // Если ход не был заблокирован, AI делает случайный ход
+            // Если не было найдено хода для блокировки, делаем случайный ход
             if (!moveMade) {
-                while (!moveMade) {
-                    const row = Math.floor(Math.random() * boardSize);
-                    const col = Math.floor(Math.random() * boardSize);
-                    if (!board[row][col]) {
-                        board[row][col] = '⭕';
-                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).textContent = '⭕';
-                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.remove('empty');
-                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.add('zero');
-                        moveMade = true;
+                if (Math.random() <= 0.98) {
+                    while (!moveMade) {
+                        const row = Math.floor(Math.random() * boardSize);
+                        const col = Math.floor(Math.random() * boardSize);
+                        if (!board[row][col]) {
+                            board[row][col] = '⭕';
+                            document.querySelector(`[data-row="${row}"][data-col="${col}"]`).textContent = '⭕';
+                            document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.remove('empty');
+                            document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.add('zero');
+                            moveMade = true;
+                        }
                     }
                 }
             }
@@ -229,14 +230,13 @@
         // Генерация новых уровней
         function generateLevels() {
             // Логика для генерации новых уровней с различными полями
-            alert('Генерация новых уровней.'); // Можно заменить на функционал генерации уровней
-
             const newLevels = [
                 { size: 3, shape: 'square' },
                 { size: 4, shape: 'rectangle' },
                 { size: 5, shape: 'square' },
-                { size: 6, shape: 'rectangle' },
-                { size: 7, shape: 'square' }
+                { size: 6, shape: 'hexagon' }, // Допустим, что у нас есть еще форма "шестигранник"
+                { size: 7, shape: 'diamond' },  // Допустим, что у нас есть форма "ромб"
+                // Добавьте любые другие формы и модификации по вашему желанию
             ];
 
             const randomLevel = newLevels[Math.floor(Math.random() * newLevels.length)];
@@ -249,6 +249,7 @@
             document.getElementById('restartBtn').style.display = 'none';
             document.getElementById('nextLevelBtn').style.display = 'none';
             document.getElementById('generateLevelsBtn').style.display = 'none';
+            document.getElementById('finalMessage').style.display = 'none';
         }
 
         // Перезапуск игры
