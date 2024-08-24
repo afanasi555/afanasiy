@@ -121,47 +121,56 @@
             }
         }
 
+        // Проверка на выигрышные ходы
+        function findWinningMove(symbol) {
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    if (board[i][j] === null) {
+                        board[i][j] = symbol;
+                        if (checkVictory(symbol)) {
+                            board[i][j] = null;
+                            return {row: i, col: j};
+                        }
+                        board[i][j] = null;
+                    }
+                }
+            }
+            return null;
+        }
+
         // Ход AI
         function aiMove() {
             if (gameOver) return;
 
             let moveMade = false;
 
-            // Блокировка выигрышных ходов рядом с последним ходом игрока
-            if (Math.random() <= 0.98) {
-                for (let i = Math.max(0, lastMove.row - 1); i <= Math.min(boardSize - 1, lastMove.row + 1); i++) {
-                    for (let j = Math.max(0, lastMove.col - 1); j <= Math.min(boardSize - 1, lastMove.col + 1); j++) {
-                        if (board[i][j] === null) {
-                            board[i][j] = '⭕';
-                            if (checkVictory('⭕')) {
-                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).textContent = '⭕';
-                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.remove('empty');
-                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.add('zero');
-                                moveMade = true;
-                                return;  // Блокировка успешного хода
-                            }
-                            board[i][j] = null;
-                        }
-                    }
+            // Попытка заблокировать выигрышный ход игрока
+            const blockMove = findWinningMove('❌');
+            if (blockMove) {
+                board[blockMove.row][blockMove.col] = '⭕';
+                document.querySelector(`[data-row="${blockMove.row}"][data-col="${blockMove.col}"]`).textContent = '⭕';
+                document.querySelector(`[data-row="${blockMove.row}"][data-col="${blockMove.col}"]`).classList.remove('empty');
+                document.querySelector(`[data-row="${blockMove.row}"][data-col="${blockMove.col}"]`).classList.add('zero');
+                moveMade = true;
+            } else {
+                // Попытка сделать выигрышный ход
+                const winMove = findWinningMove('⭕');
+                if (winMove) {
+                    board[winMove.row][winMove.col] = '⭕';
+                    document.querySelector(`[data-row="${winMove.row}"][data-col="${winMove.col}"]`).textContent = '⭕';
+                    document.querySelector(`[data-row="${winMove.row}"][data-col="${winMove.col}"]`).classList.remove('empty');
+                    document.querySelector(`[data-row="${winMove.row}"][data-col="${winMove.col}"]`).classList.add('zero');
+                    moveMade = true;
                 }
             }
 
-            // Если не удалось заблокировать, делаем случайный ход рядом с потенциально выигрышными позициями
             if (!moveMade) {
-                const potentialMoves = [];
+                // Если ни один ход не был сделан, делаем случайный ход
+                let potentialMoves = [];
                 for (let i = 0; i < boardSize; i++) {
                     for (let j = 0; j < boardSize; j++) {
                         if (board[i][j] === null) {
-                            board[i][j] = '⭕';
-                            if (checkVictory('⭕')) {
-                                // Если AI может выиграть, не делаем этот ход
-                                board[i][j] = null;
-                            } else {
-                                board[i][j] = null;
-                                if (Math.random() <= 0.8) { // 80% вероятность сделать ход рядом с потенциально выигрышными позициями
-                                    potentialMoves.push({row: i, col: j});
-                                }
-                            }
+                            potentialMoves.push({row: i, col: j});
                         }
                     }
                 }
@@ -176,21 +185,6 @@
                 }
             }
 
-            if (!moveMade) {
-                // Если ничего не сделано, делаем случайный ход
-                while (!moveMade) {
-                    const row = Math.floor(Math.random() * boardSize);
-                    const col = Math.floor(Math.random() * boardSize);
-                    if (!board[row][col]) {
-                        board[row][col] = '⭕';
-                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).textContent = '⭕';
-                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.remove('empty');
-                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.add('zero');
-                        moveMade = true;
-                    }
-                }
-            }
-
             if (checkVictory('⭕')) {
                 endGame('Вы проиграли!');
             } else if (isBoardFull()) {
@@ -200,10 +194,12 @@
 
         // Проверка на победу
         function checkVictory(symbol) {
+            // Проверка строк и столбцов
             for (let i = 0; i < boardSize; i++) {
                 if (board[i].every(cell => cell === symbol)) return true;
                 if (board.every(row => row[i] === symbol)) return true;
             }
+            // Проверка диагоналей
             if (board.every((row, i) => row[i] === symbol)) return true;
             if (board.every((row, i) => row[boardSize - i - 1] === symbol)) return true;
             return false;
