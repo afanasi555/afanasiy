@@ -37,11 +37,13 @@
 
     <script>
         // Задаем начальные параметры
-        let boardSize = 3; // Начальный размер поля
-        let currentLevel = localStorage.getItem('currentLevel') || 1; // Загружаем уровень из localStorage
+        let boardSize = parseInt(localStorage.getItem('boardSize')) || 3; // Начальный размер поля
+        let currentLevel = parseInt(localStorage.getItem('currentLevel')) || 1; // Загружаем уровень из localStorage
         let gameBoard = document.getElementById('game-board');
         let restartButton = document.getElementById('restart-button');
         let nextLevelButton = document.getElementById('next-level-button');
+        let currentPlayer = 'X'; // Начинающий игрок
+        let gameActive = true;
 
         function createBoard(size) {
             gameBoard.innerHTML = '';
@@ -49,31 +51,102 @@
                 let row = gameBoard.insertRow();
                 for (let j = 0; j < size; j++) {
                     let cell = row.insertCell();
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
                     cell.addEventListener('click', () => cellClick(i, j));
                 }
             }
         }
 
         function cellClick(row, col) {
-            // Логика игры (проверка ходов, победы и т.д.)
-            // Пример простой проверки для демонстрации
+            if (!gameActive) return;
             let cell = gameBoard.rows[row].cells[col];
             if (cell.innerText === '') {
-                cell.innerText = 'X'; // Замени на логику игры
-                checkWin(); // Проверяем, выиграл ли игрок
+                cell.innerText = currentPlayer;
+                if (checkWin()) {
+                    endGame(true); // Игрок выиграл
+                } else if (checkDraw()) {
+                    endGame(false); // Ничья
+                } else {
+                    // Переход хода
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                    // AI ход
+                    if (currentPlayer === 'O') {
+                        setTimeout(() => aiMove(), 500);
+                    }
+                }
             }
         }
 
+        function aiMove() {
+            if (!gameActive) return;
+            let emptyCells = [];
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    let cell = gameBoard.rows[i].cells[j];
+                    if (cell.innerText === '') {
+                        emptyCells.push({ row: i, col: j });
+                    }
+                }
+            }
+
+            if (emptyCells.length === 0) return;
+
+            let cellToMove = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+
+            // Блокировка хода с вероятностью 80%
+            if (Math.random() < 0.8) {
+                let blockMove = Math.random() < 0.5; // 50% шанс блокировки
+                if (blockMove) {
+                    let bestMove = findBestMove();
+                    if (bestMove) {
+                        cellToMove = bestMove;
+                    }
+                }
+            }
+
+            let cell = gameBoard.rows[cellToMove.row].cells[cellToMove.col];
+            cell.innerText = 'O';
+            if (checkWin()) {
+                endGame(false); // AI выиграл
+            } else if (checkDraw()) {
+                endGame(false); // Ничья
+            } else {
+                currentPlayer = 'X'; // Возвращаем ход игроку
+            }
+        }
+
+        function findBestMove() {
+            // Простейшая стратегия для AI (блокировка/победа)
+            // Можно добавить более сложную логику
+            // Проверка и блокировка может быть добавлена здесь
+            return null;
+        }
+
         function checkWin() {
-            // Логика проверки выигрыша
-            // Если игрок проиграл
-            endGame(false); // false означает проигрыш
+            // Проверка победы по строкам, столбцам и диагоналям
+            // Реализуйте проверку победы
+            return false; // Замена на реальную проверку
+        }
+
+        function checkDraw() {
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    if (gameBoard.rows[i].cells[j].innerText === '') {
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
         function endGame(isWin) {
+            gameActive = false;
             if (isWin) {
+                alert('Поздравляем, вы выиграли!');
                 nextLevelButton.classList.remove('hidden');
             } else {
+                alert('Игра окончена. Ничья.');
                 restartButton.classList.remove('hidden');
             }
         }
@@ -82,14 +155,19 @@
             restartButton.classList.add('hidden');
             nextLevelButton.classList.add('hidden');
             createBoard(boardSize);
+            currentPlayer = 'X';
+            gameActive = true;
         }
 
         function nextLevel() {
             currentLevel++;
             localStorage.setItem('currentLevel', currentLevel);
-            boardSize++; // Увеличиваем размер поля с каждым уровнем
+            boardSize++;
+            localStorage.setItem('boardSize', boardSize);
             createBoard(boardSize);
             nextLevelButton.classList.add('hidden');
+            currentPlayer = 'X';
+            gameActive = true;
         }
 
         restartButton.addEventListener('click', restartGame);
