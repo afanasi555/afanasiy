@@ -1,213 +1,102 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Крестики Нолики</title>
+    <title>Крестики-Нолики</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
+            text-align: center;
         }
         table {
+            margin: auto;
             border-collapse: collapse;
         }
         td {
-            width: 50px;
-            height: 50px;
+            width: 100px;
+            height: 100px;
+            border: 1px solid #000;
             text-align: center;
             vertical-align: middle;
-            font-size: 24px;
+            font-size: 2em;
             cursor: pointer;
-            border: 1px solid #000;
         }
-        .empty {
-            background-color: #2196F3;
-        }
-        .cross {
-            color: red;
-        }
-        .zero {
-            color: green;
-        }
-        .highlight {
-            background-color: #FFC107; /* Подсветка клетки для хода */
-        }
-        button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <h1>Крестики Нолики</h1>
-    <table id="gameTable"></table>
-    <button id="restartBtn" style="display:none;" onclick="restartGame()">Играть заново</button>
-    <button id="nextLevelBtn" style="display:none;" onclick="nextLevel()">Следующий уровень</button>
+    <h1>Крестики-Нолики</h1>
+    <div id="game-container">
+        <table id="game-board"></table>
+        <button id="restart-button" class="hidden">Играть заново</button>
+        <button id="next-level-button" class="hidden">Следующий уровень</button>
+    </div>
 
     <script>
-        const levels = 5;
-        let currentLevel = 1;
-        let boardSize = 3;  // Начальный размер поля 3x3
-        let board = [];
-        let gameOver = false;
+        // Задаем начальные параметры
+        let boardSize = 3; // Начальный размер поля
+        let currentLevel = localStorage.getItem('currentLevel') || 1; // Загружаем уровень из localStorage
+        let gameBoard = document.getElementById('game-board');
+        let restartButton = document.getElementById('restart-button');
+        let nextLevelButton = document.getElementById('next-level-button');
 
-        // Функция для создания поля
-        function createBoard() {
-            const table = document.getElementById('gameTable');
-            table.innerHTML = '';
-            board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
-
-            for (let i = 0; i < boardSize; i++) {
-                const row = document.createElement('tr');
-                for (let j = 0; j < boardSize; j++) {
-                    const cell = document.createElement('td');
-                    cell.classList.add('empty');
-                    cell.dataset.row = i;
-                    cell.dataset.col = j;
-                    cell.onclick = handleMove;
-                    cell.onmouseover = function() { if (!board[i][j] && !gameOver) cell.classList.add('highlight'); };
-                    cell.onmouseout = function() { cell.classList.remove('highlight'); };
-                    row.appendChild(cell);
-                }
-                table.appendChild(row);
-            }
-        }
-
-        // Функция обработки хода игрока
-        function handleMove() {
-            if (gameOver) return;
-
-            const row = this.dataset.row;
-            const col = this.dataset.col;
-
-            if (!board[row][col]) {
-                board[row][col] = '❌';
-                this.classList.remove('empty');
-                this.classList.add('cross');
-                this.textContent = '❌';
-                
-                if (checkVictory('❌')) {
-                    endGame('Вы выиграли!', true);
-                    return;
-                }
-
-                if (isBoardFull()) {
-                    endGame('Ничья!', false);
-                    return;
-                }
-
-                aiMove();  // Ход AI
-            }
-        }
-
-        // Ход AI
-        function aiMove() {
-            if (gameOver) return;
-
-            let moveMade = false;
-
-            // AI блокирует выигрышный ход игрока с приоритетом
-            for (let i = 0; i < boardSize; i++) {
-                for (let j = 0; j < boardSize; j++) {
-                    if (!board[i][j]) {
-                        board[i][j] = '❌';
-                        if (checkVictory('❌')) {
-                            board[i][j] = '⭕';
-                            document.querySelector(`[data-row="${i}"][data-col="${j}"]`).textContent = '⭕';
-                            document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.remove('empty');
-                            document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.add('zero');
-                            moveMade = true;
-                            break;
-                        }
-                        board[i][j] = null;
-                    }
-                }
-                if (moveMade) break;
-            }
-
-            // Если ход не был заблокирован, AI делает случайный ход
-            if (!moveMade) {
-                while (!moveMade) {
-                    const row = Math.floor(Math.random() * boardSize);
-                    const col = Math.floor(Math.random() * boardSize);
-                    if (!board[row][col]) {
-                        board[row][col] = '⭕';
-                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).textContent = '⭕';
-                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.remove('empty');
-                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.add('zero');
-                        moveMade = true;
-                    }
+        function createBoard(size) {
+            gameBoard.innerHTML = '';
+            for (let i = 0; i < size; i++) {
+                let row = gameBoard.insertRow();
+                for (let j = 0; j < size; j++) {
+                    let cell = row.insertCell();
+                    cell.addEventListener('click', () => cellClick(i, j));
                 }
             }
+        }
 
-            if (checkVictory('⭕')) {
-                endGame('Вы проиграли!', false);
-            } else if (isBoardFull()) {
-                endGame('Ничья!', false);
+        function cellClick(row, col) {
+            // Логика игры (проверка ходов, победы и т.д.)
+            // Пример простой проверки для демонстрации
+            let cell = gameBoard.rows[row].cells[col];
+            if (cell.innerText === '') {
+                cell.innerText = 'X'; // Замени на логику игры
+                checkWin(); // Проверяем, выиграл ли игрок
             }
         }
 
-        // Проверка на победу
-        function checkVictory(symbol) {
-            for (let i = 0; i < boardSize; i++) {
-                if (board[i].every(cell => cell === symbol)) return true;
-                if (board.every(row => row[i] === symbol)) return true;
-            }
-            if (board.every((row, i) => row[i] === symbol)) return true;
-            if (board.every((row, i) => row[boardSize - i - 1] === symbol)) return true;
-            return false;
+        function checkWin() {
+            // Логика проверки выигрыша
+            // Если игрок проиграл
+            endGame(false); // false означает проигрыш
         }
 
-        // Проверка на заполненность поля
-        function isBoardFull() {
-            return board.flat().every(cell => cell !== null);
-        }
-
-        // Окончание игры
-        function endGame(message, won) {
-            alert(message);
-            gameOver = true;
-            document.getElementById('restartBtn').style.display = 'block';
-            if (won && currentLevel < levels) {
-                document.getElementById('nextLevelBtn').style.display = 'block';
-            }
-        }
-
-        // Переход на следующий уровень
-        function nextLevel() {
-            if (currentLevel < levels) {
-                currentLevel++;
-                boardSize++;
-                gameOver = false;
-                document.getElementById('restartBtn').style.display = 'none';
-                document.getElementById('nextLevelBtn').style.display = 'none';
-                createBoard();
+        function endGame(isWin) {
+            if (isWin) {
+                nextLevelButton.classList.remove('hidden');
             } else {
-                alert('Вы прошли все уровни!');
-                // Логика окончания игры и отправка сообщения в бота
+                restartButton.classList.remove('hidden');
             }
         }
 
-        // Перезапуск игры
         function restartGame() {
-            currentLevel = 1;
-            boardSize = 3;
-            gameOver = false;
-            document.getElementById('restartBtn').style.display = 'none';
-            document.getElementById('nextLevelBtn').style.display = 'none';
-            createBoard();
+            restartButton.classList.add('hidden');
+            nextLevelButton.classList.add('hidden');
+            createBoard(boardSize);
         }
 
-        // Запуск игры
-        createBoard();
+        function nextLevel() {
+            currentLevel++;
+            localStorage.setItem('currentLevel', currentLevel);
+            boardSize++; // Увеличиваем размер поля с каждым уровнем
+            createBoard(boardSize);
+            nextLevelButton.classList.add('hidden');
+        }
+
+        restartButton.addEventListener('click', restartGame);
+        nextLevelButton.addEventListener('click', nextLevel);
+
+        // Инициализация игры
+        createBoard(boardSize);
     </script>
 </body>
 </html>
