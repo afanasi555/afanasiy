@@ -229,8 +229,26 @@
         // Генерация новых уровней
         function generateLevels() {
             // Логика для генерации новых уровней с различными полями
-            // Здесь можно добавить алгоритм генерации новых уровней с различными модификациями
-            alert('Генерация новых уровней не реализована.');
+            alert('Генерация новых уровней.'); // Можно заменить на функционал генерации уровней
+
+            const newLevels = [
+                { size: 3, shape: 'square' },
+                { size: 4, shape: 'rectangle' },
+                { size: 5, shape: 'square' },
+                { size: 6, shape: 'rectangle' },
+                { size: 7, shape: 'square' }
+            ];
+
+            const randomLevel = newLevels[Math.floor(Math.random() * newLevels.length)];
+
+            boardSize = randomLevel.size;
+            createBoard();
+
+            // Обновляем уровень и скрываем кнопки
+            currentLevel = newLevels.indexOf(randomLevel) + 1;
+            document.getElementById('restartBtn').style.display = 'none';
+            document.getElementById('nextLevelBtn').style.display = 'none';
+            document.getElementById('generateLevelsBtn').style.display = 'none';
         }
 
         // Перезапуск игры
