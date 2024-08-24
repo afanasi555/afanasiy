@@ -24,6 +24,7 @@
             vertical-align: middle;
             font-size: 24px;
             cursor: pointer;
+            border: 1px solid #000;
         }
         .empty {
             background-color: #2196F3;
@@ -34,16 +35,28 @@
         .zero {
             color: green;
         }
+        .highlight {
+            background-color: #FFC107; /* Подсветка клетки для хода */
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <h1>Крестики Нолики</h1>
     <table id="gameTable"></table>
+    <button id="restartBtn" style="display:none;" onclick="restartGame()">Играть заново</button>
+
     <script>
         const levels = 5;
         let currentLevel = 1;
         let boardSize = 3;  // Начальный размер поля 3x3
         let board = [];
+        let gameOver = false;
 
         // Функция для создания поля
         function createBoard() {
@@ -59,6 +72,8 @@
                     cell.dataset.row = i;
                     cell.dataset.col = j;
                     cell.onclick = handleMove;
+                    cell.onmouseover = function() { if (!board[i][j] && !gameOver) cell.classList.add('highlight'); };
+                    cell.onmouseout = function() { cell.classList.remove('highlight'); };
                     row.appendChild(cell);
                 }
                 table.appendChild(row);
@@ -67,6 +82,8 @@
 
         // Функция обработки хода игрока
         function handleMove() {
+            if (gameOver) return;
+
             const row = this.dataset.row;
             const col = this.dataset.col;
 
@@ -77,29 +94,35 @@
                 this.textContent = '❌';
                 
                 if (checkVictory('❌')) {
-                    alert('Вы выиграли!');
-                    // Логика победы и перехода на следующий уровень
-                    nextLevel();
+                    endGame('Вы выиграли!');
                     return;
                 }
 
-                if (currentLevel < levels) {
-                    aiMove();  // Ход AI
+                if (isBoardFull()) {
+                    endGame('Ничья!');
+                    return;
                 }
+
+                aiMove();  // Ход AI
             }
         }
 
         // Ход AI
         function aiMove() {
+            if (gameOver) return;
+
             let moveMade = false;
-            if (Math.random() > 0.5) {
-                // AI блокирует выигрышный ход игрока
+
+            // AI блокирует выигрышный ход игрока с вероятностью 80%
+            if (Math.random() <= 0.8) {
                 for (let i = 0; i < boardSize; i++) {
                     for (let j = 0; j < boardSize; j++) {
                         if (!board[i][j]) {
                             board[i][j] = '⭕';
                             if (checkVictory('⭕')) {
                                 document.querySelector(`[data-row="${i}"][data-col="${j}"]`).textContent = '⭕';
+                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.remove('empty');
+                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.add('zero');
                                 moveMade = true;
                                 break;
                             }
@@ -110,8 +133,8 @@
                 }
             }
 
+            // Если ход не был заблокирован, AI делает случайный ход
             if (!moveMade) {
-                // AI делает случайный ход
                 while (!moveMade) {
                     const row = Math.floor(Math.random() * boardSize);
                     const col = Math.floor(Math.random() * boardSize);
@@ -123,6 +146,12 @@
                         moveMade = true;
                     }
                 }
+            }
+
+            if (checkVictory('⭕')) {
+                endGame('Вы проиграли!');
+            } else if (isBoardFull()) {
+                endGame('Ничья!');
             }
         }
 
@@ -137,16 +166,38 @@
             return false;
         }
 
+        // Проверка на заполненность поля
+        function isBoardFull() {
+            return board.flat().every(cell => cell !== null);
+        }
+
+        // Окончание игры
+        function endGame(message) {
+            alert(message);
+            gameOver = true;
+            document.getElementById('restartBtn').style.display = 'block';
+        }
+
         // Переход на следующий уровень
         function nextLevel() {
             if (currentLevel < levels) {
                 currentLevel++;
                 boardSize++;
+                gameOver = false;
                 createBoard();
             } else {
                 alert('Вы выиграли на всех уровнях!');
                 // Логика окончания игры и отправка сообщения в бота
             }
+        }
+
+        // Перезапуск игры
+        function restartGame() {
+            currentLevel = 1;
+            boardSize = 3;
+            gameOver = false;
+            document.getElementById('restartBtn').style.display = 'none';
+            createBoard();
         }
 
         // Запуск игры
