@@ -214,56 +214,43 @@
         function endGame(message) {
             gameOver = true;
             document.getElementById('restartBtn').style.display = 'inline-block';
+
             if (currentLevel === levels) {
                 document.getElementById('generateLevelsBtn').style.display = 'inline-block';
             } else {
                 document.getElementById('generateLevelsBtn').style.display = 'none';
             }
-            if (message === 'Вы выиграли!') {
+
+            if (message === 'Вы выиграли!' && currentLevel < levels) {
                 document.getElementById('nextLevelBtn').style.display = 'inline-block';
             } else {
                 document.getElementById('nextLevelBtn').style.display = 'none';
             }
-            document.getElementById('finalMessage').innerText = message;
+
+            document.getElementById('finalMessage').textContent = message;
             document.getElementById('finalMessage').style.display = 'block';
         }
 
         // Переход на следующий уровень
         function nextLevel() {
-            if (currentLevel < levels) {
-                currentLevel++;
-                boardSize = Math.min(currentLevel + 2, 7);  // Увеличиваем размер до 7x7
-                createBoard();
-                document.getElementById('restartBtn').style.display = 'none';
-                document.getElementById('nextLevelBtn').style.display = 'none';
-                document.getElementById('generateLevelsBtn').style.display = 'none';
-                document.getElementById('finalMessage').style.display = 'none';
-            } else {
-                document.getElementById('finalMessage').innerText = 'Поздравляем! Вы завершили все уровни!';
-                document.getElementById('finalMessage').style.display = 'block';
-                document.getElementById('nextLevelBtn').style.display = 'none';
-            }
-        }
+            if (currentLevel >= levels) return;
 
-        // Генерация новых уровней
-        function generateLevels() {
-            const newLevels = [
-                { size: 3, shape: 'square' },
-                { size: 4, shape: 'rectangle' },
-                { size: 5, shape: 'square' },
-                { size: 6, shape: 'hexagon' },
-                { size: 7, shape: 'diamond' },
-            ];
-
-            const randomLevel = newLevels[Math.floor(Math.random() * newLevels.length)];
-
-            boardSize = randomLevel.size;
+            currentLevel++;
+            boardSize = currentLevel + 2; // Увеличиваем размер поля
             createBoard();
-
             document.getElementById('restartBtn').style.display = 'none';
             document.getElementById('nextLevelBtn').style.display = 'none';
             document.getElementById('generateLevelsBtn').style.display = 'none';
             document.getElementById('finalMessage').style.display = 'none';
+        }
+
+        // Генерация новых уровней
+        function generateLevels() {
+            // В этом примере новая генерация уровня не реализована
+            // Вы можете использовать эту функцию для создания более сложных уровней.
+            document.getElementById('finalMessage').textContent = '';
+            document.getElementById('generateLevelsBtn').style.display = 'none';
+            createBoard();
         }
 
         // Перезапуск игры
