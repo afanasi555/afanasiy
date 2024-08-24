@@ -1,106 +1,250 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Крестики-нолики</title>
+    <title>Крестики Нолики</title>
     <style>
-        .board {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, 100px);
-            gap: 5px;
-            margin: 20px 0;
-        }
-        .cell {
-            width: 100px;
-            height: 100px;
+        body {
+            font-family: Arial, sans-serif;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 2em;
+            height: 100vh;
+            margin: 0;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        td {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 24px;
+            cursor: pointer;
             border: 1px solid #000;
+        }
+        .empty {
+            background-color: #2196F3;
+        }
+        .cross {
+            color: red;
+        }
+        .zero {
+            color: green;
+        }
+        .highlight {
+            background-color: #FFC107; /* Подсветка клетки для хода */
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
             cursor: pointer;
         }
-        .cell:hover {
-            background-color: #f0f0f0;
+        #nextLevelBtn, #generateLevelsBtn {
+            display: none;
         }
-        .message {
+        #finalMessage {
+            display: none;
+            font-size: 18px;
+            text-align: center;
             margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="board" class="board"></div>
-        <div id="message" class="message"></div>
-        <button onclick="restartGame()">Играть заново</button>
-        <button onclick="nextLevel()">Следующий уровень</button>
-        <button onclick="updateMessage()">Обновить сообщение</button>
-    </div>
+    <h1>Крестики Нолики</h1>
+    <table id="gameTable"></table>
+    <button id="restartBtn" style="display:none;" onclick="restartGame()">Играть заново</button>
+    <button id="nextLevelBtn" style="display:none;" onclick="nextLevel()">Следующий уровень</button>
+    <button id="generateLevelsBtn" style="display:none;" onclick="generateLevels()">Добавить новые уровни</button>
+    <div id="finalMessage"></div>
+
     <script>
-        let boardSize = 3;
+        const levels = 5;
+        let currentLevel = 1;
+        let boardSize = 3;  // Начальный размер поля 3x3
         let board = [];
-        let messageElement = document.getElementById('message');
-        let finalMessage = "Поздравляю! Вы завершили все уровни!";
+        let gameOver = false;
 
-        function createBoard(size) {
-            const boardElement = document.getElementById('board');
-            boardElement.innerHTML = '';
-            board = Array(size).fill(null).map(() => Array(size).fill(null));
+        // Функция для создания поля
+        function createBoard() {
+            const table = document.getElementById('gameTable');
+            table.innerHTML = '';
+            board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
 
-            for (let i = 0; i < size; i++) {
-                for (let j = 0; j < size; j++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'cell';
-                    cell.id = `${i}-${j}`;
-                    cell.addEventListener('click', () => makeMove(i, j));
-                    boardElement.appendChild(cell);
+            for (let i = 0; i < boardSize; i++) {
+                const row = document.createElement('tr');
+                for (let j = 0; j < boardSize; j++) {
+                    const cell = document.createElement('td');
+                    cell.classList.add('empty');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.onclick = handleMove;
+                    cell.onmouseover = function() { if (!board[i][j] && !gameOver) cell.classList.add('highlight'); };
+                    cell.onmouseout = function() { cell.classList.remove('highlight'); };
+                    row.appendChild(cell);
+                }
+                table.appendChild(row);
+            }
+        }
+
+        // Функция обработки хода игрока
+        function handleMove() {
+            if (gameOver) return;
+
+            const row = this.dataset.row;
+            const col = this.dataset.col;
+
+            if (!board[row][col]) {
+                board[row][col] = '❌';
+                this.classList.remove('empty');
+                this.classList.add('cross');
+                this.textContent = '❌';
+                
+                if (checkVictory('❌')) {
+                    endGame('Вы выиграли!');
+                    return;
+                }
+
+                if (isBoardFull()) {
+                    endGame('Ничья!');
+                    return;
+                }
+
+                aiMove();  // Ход AI
+            }
+        }
+
+        // Ход AI
+        function aiMove() {
+            if (gameOver) return;
+
+            let moveMade = false;
+
+            // AI блокирует выигрышный ход игрока с вероятностью 98%
+            if (Math.random() <= 0.98) {
+                for (let i = 0; i < boardSize; i++) {
+                    for (let j = 0; j < boardSize; j++) {
+                        if (!board[i][j]) {
+                            board[i][j] = '⭕';
+                            if (checkVictory('⭕')) {
+                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).textContent = '⭕';
+                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.remove('empty');
+                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.add('zero');
+                                moveMade = true;
+                                break;
+                            }
+                            board[i][j] = null;
+                        }
+                    }
+                    if (moveMade) break;
+                }
+            }
+
+            // Если ход не был заблокирован, AI делает случайный ход
+            if (!moveMade) {
+                while (!moveMade) {
+                    const row = Math.floor(Math.random() * boardSize);
+                    const col = Math.floor(Math.random() * boardSize);
+                    if (!board[row][col]) {
+                        board[row][col] = '⭕';
+                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).textContent = '⭕';
+                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.remove('empty');
+                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.add('zero');
+                        moveMade = true;
+                    }
+                }
+            }
+
+            if (checkVictory('⭕')) {
+                endGame('Вы проиграли!');
+            } else if (isBoardFull()) {
+                endGame('Ничья!');
+            }
+        }
+
+        // Проверка на победу
+        function checkVictory(symbol) {
+            for (let i = 0; i < boardSize; i++) {
+                if (board[i].every(cell => cell === symbol)) return true;
+                if (board.every(row => row[i] === symbol)) return true;
+            }
+            if (board.every((row, i) => row[i] === symbol)) return true;
+            if (board.every((row, i) => row[boardSize - i - 1] === symbol)) return true;
+            return false;
+        }
+
+        // Проверка на заполненность поля
+        function isBoardFull() {
+            return board.flat().every(cell => cell !== null);
+        }
+
+        // Окончание игры
+        function endGame(message) {
+            alert(message);
+            gameOver = true;
+            document.getElementById('restartBtn').style.display = 'block';
+            if (message.includes('выиграли') || message.includes('Ничья')) {
+                if (currentLevel === levels) {
+                    displayFinalMessage();
+                } else {
+                    document.getElementById('nextLevelBtn').style.display = 'block';
                 }
             }
         }
 
-        function updateBoard() {
-            board.forEach((row, i) => {
-                row.forEach((cell, j) => {
-                    const cellElement = document.getElementById(`${i}-${j}`);
-                    cellElement.innerText = cell || '';
-                });
-            });
-        }
-
-        function makeMove(i, j) {
-            if (!board[i][j]) {
-                board[i][j] = 'X';  // Замена на логик для AI или пользователя
-                updateBoard();
-                // Добавьте логику проверки победы и ходы AI
-            }
-        }
-
-        function restartGame() {
-            createBoard(boardSize);
-            messageElement.innerText = '';
-        }
-
-        function nextLevel() {
-            boardSize++;
-            createBoard(boardSize);
-            messageElement.innerText = `Вы достигли уровня ${boardSize}`;
-        }
-
-        function updateMessage() {
-            const newMessage = prompt("Введите новое сообщение для отображения:");
-            if (newMessage) {
-                finalMessage = newMessage;
-                messageElement.innerText = finalMessage;
-            }
-        }
-
+        // Показ сообщения после завершения последнего уровня
         function displayFinalMessage() {
-            messageElement.innerText = finalMessage;
+            const finalMessage = document.getElementById('finalMessage');
+            finalMessage.innerHTML = `
+                Субботний добрый вечер, дорогие мои зрители. Сегодня мы с вами обсудим новые факты из биографии меня - Пираньи Афанасия. 
+                Вы думаете, что я пою так, любительски, но это неправда. Я сильно запариваюсь, чтобы мой голос звучал максимально роскошно. 
+                В остальном я вполне себе прост. Не крашу ногти себе по причине их отсутствия и не крашу ногти другим, потому что совсем уже что ли, я рыба. 
+                Очень грустно, но не люблю брусья. А также коней, перекладин и колец. Что ж тут поделать.
+                Зато люблю погонять питона. Аж на 10 тысяч. Ладно, это уже слишком много информации. А после прочтения слушайте мою новую песню!
+            `;
+            finalMessage.style.display = 'block';
+            document.getElementById('generateLevelsBtn').style.display = 'block';
         }
 
-        // Инициализация игры
-        createBoard(boardSize);
+        // Переход на следующий уровень
+        function nextLevel() {
+            if (currentLevel < levels) {
+                currentLevel++;
+                boardSize++;
+                gameOver = false;
+                createBoard();
+                document.getElementById('restartBtn').style.display = 'none';
+                document.getElementById('nextLevelBtn').style.display = 'none';
+                document.getElementById('generateLevelsBtn').style.display = 'none';
+            } else {
+                displayFinalMessage();
+            }
+        }
+
+        // Генерация новых уровней
+        function generateLevels() {
+            // Логика для генерации новых уровней с различными полями
+            // Здесь можно добавить алгоритм генерации новых уровней с различными модификациями
+            alert('Генерация новых уровней не реализована.');
+        }
+
+        // Перезапуск игры
+        function restartGame() {
+            gameOver = false;
+            document.getElementById('restartBtn').style.display = 'none';
+            document.getElementById('nextLevelBtn').style.display = 'none';
+            document.getElementById('generateLevelsBtn').style.display = 'none';
+            document.getElementById('finalMessage').style.display = 'none';
+            createBoard();
+        }
+
+        // Запуск игры
+        createBoard();
     </script>
 </body>
 </html>
