@@ -214,15 +214,11 @@
         function endGame(message) {
             gameOver = true;
             document.getElementById('restartBtn').style.display = 'inline-block';
-            if (message === 'Вы проиграли!') {
-                document.getElementById('nextLevelBtn').style.display = 'none';
-                document.getElementById('generateLevelsBtn').style.display = 'none';
-            } else if (message === 'Ничья!' || currentLevel === levels) {
+            document.getElementById('generateLevelsBtn').style.display = 'inline-block';
+            if (message === 'Вы выиграли!') {
                 document.getElementById('nextLevelBtn').style.display = 'inline-block';
-                document.getElementById('generateLevelsBtn').style.display = 'none';
             } else {
-                document.getElementById('nextLevelBtn').style.display = 'inline-block';
-                document.getElementById('generateLevelsBtn').style.display = 'inline-block';
+                document.getElementById('nextLevelBtn').style.display = 'none';
             }
             document.getElementById('finalMessage').innerText = message;
             document.getElementById('finalMessage').style.display = 'block';
@@ -232,8 +228,9 @@
         function nextLevel() {
             if (currentLevel < levels) {
                 currentLevel++;
-                boardSize = Math.min(3 + currentLevel, 7); // Увеличиваем размер поля до 7x7
+                boardSize = Math.min(currentLevel + 2, 7);  // Увеличиваем размер до 7x7
                 createBoard();
+                document.getElementById('restartBtn').style.display = 'none';
                 document.getElementById('nextLevelBtn').style.display = 'none';
                 document.getElementById('generateLevelsBtn').style.display = 'none';
                 document.getElementById('finalMessage').style.display = 'none';
@@ -246,7 +243,6 @@
 
         // Генерация новых уровней
         function generateLevels() {
-            // Логика для генерации новых уровней с различными полями
             const newLevels = [
                 { size: 3, shape: 'square' },
                 { size: 4, shape: 'rectangle' },
