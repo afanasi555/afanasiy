@@ -44,7 +44,7 @@
             font-size: 16px;
             cursor: pointer;
         }
-        #nextLevelBtn, #configureMessageBtn {
+        #nextLevelBtn, #restartBtn, #messageControls {
             display: none;
         }
     </style>
@@ -54,7 +54,12 @@
     <table id="gameTable"></table>
     <button id="restartBtn" style="display:none;" onclick="restartGame()">Играть заново</button>
     <button id="nextLevelBtn" style="display:none;" onclick="nextLevel()">Следующий уровень</button>
-    <button id="configureMessageBtn" style="display:none;" onclick="configureMessage()">Настроить сообщение</button>
+    <div id="messageControls">
+        <button onclick="sendMessage()">Отправить сообщение</button>
+        <button onclick="editMessage()">Изменить сообщение</button>
+        <button onclick="deleteMessage()">Удалить сообщение</button>
+        <button onclick="sendMessageToRestricted()">Отправить сообщение ограниченному списку</button>
+    </div>
 
     <script>
         const levels = 5;
@@ -181,12 +186,11 @@
             alert(message);
             gameOver = true;
             document.getElementById('restartBtn').style.display = 'block';
+            if (currentLevel === levels && message.includes('выиграли')) {
+                document.getElementById('messageControls').style.display = 'block';
+            }
             if (message.includes('выиграли') || message.includes('Ничья')) {
-                if (currentLevel === levels) {
-                    document.getElementById('configureMessageBtn').style.display = 'block';
-                } else {
-                    document.getElementById('nextLevelBtn').style.display = 'block';
-                }
+                document.getElementById('nextLevelBtn').style.display = 'block';
             }
         }
 
@@ -199,6 +203,7 @@
                 createBoard();
                 document.getElementById('restartBtn').style.display = 'none';
                 document.getElementById('nextLevelBtn').style.display = 'none';
+                document.getElementById('messageControls').style.display = 'none';
             } else {
                 alert('Вы выиграли на всех уровнях!');
                 document.getElementById('restartBtn').style.display = 'block';
@@ -211,34 +216,49 @@
             gameOver = false;
             document.getElementById('restartBtn').style.display = 'none';
             document.getElementById('nextLevelBtn').style.display = 'none';
-            document.getElementById('configureMessageBtn').style.display = 'none';
+            document.getElementById('messageControls').style.display = 'none';
             createBoard();
         }
 
-        // Настройка сообщения через Telegram-бота
-        function configureMessage() {
-            fetch('https://api.telegram.org/bot7520163534:AAHVtPjJalAhqMBwguWChn1aetMEh99887k/sendMessage', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    chat_id: '@your_channel_or_chat_id', // Замените на ID чата или канала
-                    text: 'Поздравляем! Вы победили в последнем уровне. Это настраиваемое сообщение.',
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.ok) {
-                    alert('Сообщение успешно отправлено!');
-                } else {
-                    alert('Ошибка отправки сообщения.');
-                }
-            })
-            .catch(error => {
-                alert('Ошибка связи с Telegram API.');
-                console.error('Error:', error);
-            });
+        // Отправка сообщения через Telegram-бота
+        function sendMessage() {
+            const message = prompt("Введите сообщение для отправки:");
+            if (message) {
+                fetch(`/send-message?message=${encodeURIComponent(message)}`)
+                    .then(response => response.text())
+                    .then(data => alert(data))
+                    .catch(error => alert("Ошибка: " + error));
+            }
+        }
+
+        // Изменение сообщения через Telegram-бота
+        function editMessage() {
+            const newMessage = prompt("Введите новое сообщение:");
+            if (newMessage) {
+                fetch(`/edit-message?message=${encodeURIComponent(newMessage)}`)
+                    .then(response => response.text())
+                    .then(data => alert(data))
+                    .catch(error => alert("Ошибка: " + error));
+            }
+        }
+
+        // Удаление сообщения через Telegram-бота
+        function deleteMessage() {
+            fetch(`/delete-message`)
+                .then(response => response.text())
+                .then(data => alert(data))
+                .catch(error => alert("Ошибка: " + error));
+        }
+
+        // Отправка сообщения ограниченному списку пользователей
+        function sendMessageToRestricted() {
+            const message = prompt("Введите сообщение для отправки ограниченному списку:");
+            if (message) {
+                fetch(`/send-restricted-message?message=${encodeURIComponent(message)}`)
+                    .then(response => response.text())
+                    .then(data => alert(data))
+                    .catch(error => alert("Ошибка: " + error));
+            }
         }
 
         // Запуск игры
