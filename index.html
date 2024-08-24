@@ -146,8 +146,38 @@
                 }
             }
 
-            // Если не удалось заблокировать, делаем случайный ход
+            // Если не удалось заблокировать, делаем случайный ход рядом с потенциально выигрышными позициями
             if (!moveMade) {
+                const potentialMoves = [];
+                for (let i = 0; i < boardSize; i++) {
+                    for (let j = 0; j < boardSize; j++) {
+                        if (board[i][j] === null) {
+                            board[i][j] = '⭕';
+                            if (checkVictory('⭕')) {
+                                // Если AI может выиграть, не делаем этот ход
+                                board[i][j] = null;
+                            } else {
+                                board[i][j] = null;
+                                if (Math.random() <= 0.8) { // 80% вероятность сделать ход рядом с потенциально выигрышными позициями
+                                    potentialMoves.push({row: i, col: j});
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (potentialMoves.length > 0) {
+                    const move = potentialMoves[Math.floor(Math.random() * potentialMoves.length)];
+                    board[move.row][move.col] = '⭕';
+                    document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`).textContent = '⭕';
+                    document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`).classList.remove('empty');
+                    document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`).classList.add('zero');
+                    moveMade = true;
+                }
+            }
+
+            if (!moveMade) {
+                // Если ничего не сделано, делаем случайный ход
                 while (!moveMade) {
                     const row = Math.floor(Math.random() * boardSize);
                     const col = Math.floor(Math.random() * boardSize);
@@ -186,44 +216,35 @@
 
         // Окончание игры
         function endGame(message) {
-            alert(message);
             gameOver = true;
-            document.getElementById('restartBtn').style.display = 'block';
-            if (message.includes('выиграли') || message.includes('Ничья')) {
-                if (currentLevel === levels) {
-                    displayFinalMessage();
-                } else {
-                    document.getElementById('nextLevelBtn').style.display = 'block';
-                }
+            document.getElementById('restartBtn').style.display = 'inline-block';
+            if (message === 'Вы проиграли!') {
+                document.getElementById('nextLevelBtn').style.display = 'none';
+                document.getElementById('generateLevelsBtn').style.display = 'none';
+            } else if (message === 'Ничья!' || currentLevel === levels) {
+                document.getElementById('nextLevelBtn').style.display = 'inline-block';
+                document.getElementById('generateLevelsBtn').style.display = 'none';
+            } else {
+                document.getElementById('nextLevelBtn').style.display = 'inline-block';
+                document.getElementById('generateLevelsBtn').style.display = 'inline-block';
             }
-        }
-
-        // Показ сообщения после завершения последнего уровня
-        function displayFinalMessage() {
-            const finalMessage = document.getElementById('finalMessage');
-            finalMessage.innerHTML = `
-                Субботний добрый вечер, дорогие мои зрители. Сегодня мы с вами обсудим новые факты из биографии меня - Пираньи Афанасия. 
-                Вы думаете, что я пою так, любительски, но это неправда. Я сильно запариваюсь, чтобы мой голос звучал максимально роскошно. 
-                В остальном я вполне себе прост. Не крашу ногти себе по причине их отсутствия и не крашу ногти другим, потому что совсем уже что ли, я рыба. 
-                Очень грустно, но не люблю брусья. А также коней, перекладин и колец. Что ж тут поделать.
-                Зато люблю погонять питона. Аж на 10 тысяч. Ладно, это уже слишком много информации. А после прочтения слушайте мою новую песню!
-            `;
-            finalMessage.style.display = 'block';
-            document.getElementById('generateLevelsBtn').style.display = 'block';
+            document.getElementById('finalMessage').innerText = message;
+            document.getElementById('finalMessage').style.display = 'block';
         }
 
         // Переход на следующий уровень
         function nextLevel() {
             if (currentLevel < levels) {
                 currentLevel++;
-                boardSize++;
-                gameOver = false;
+                boardSize = Math.min(3 + currentLevel, 7); // Увеличиваем размер поля до 7x7
                 createBoard();
-                document.getElementById('restartBtn').style.display = 'none';
                 document.getElementById('nextLevelBtn').style.display = 'none';
                 document.getElementById('generateLevelsBtn').style.display = 'none';
+                document.getElementById('finalMessage').style.display = 'none';
             } else {
-                displayFinalMessage();
+                document.getElementById('finalMessage').innerText = 'Поздравляем! Вы завершили все уровни!';
+                document.getElementById('finalMessage').style.display = 'block';
+                document.getElementById('nextLevelBtn').style.display = 'none';
             }
         }
 
@@ -234,9 +255,8 @@
                 { size: 3, shape: 'square' },
                 { size: 4, shape: 'rectangle' },
                 { size: 5, shape: 'square' },
-                { size: 6, shape: 'hexagon' }, // Допустим, что у нас есть еще форма "шестигранник"
-                { size: 7, shape: 'diamond' },  // Допустим, что у нас есть форма "ромб"
-                // Добавьте любые другие формы и модификации по вашему желанию
+                { size: 6, shape: 'hexagon' },
+                { size: 7, shape: 'diamond' },
             ];
 
             const randomLevel = newLevels[Math.floor(Math.random() * newLevels.length)];
@@ -244,8 +264,6 @@
             boardSize = randomLevel.size;
             createBoard();
 
-            // Обновляем уровень и скрываем кнопки
-            currentLevel = newLevels.indexOf(randomLevel) + 1;
             document.getElementById('restartBtn').style.display = 'none';
             document.getElementById('nextLevelBtn').style.display = 'none';
             document.getElementById('generateLevelsBtn').style.display = 'none';
