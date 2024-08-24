@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крестики Нолики</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        td {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .empty {
+            background-color: #2196F3;
+        }
+        .cross {
+            color: red;
+        }
+        .zero {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>Крестики Нолики</h1>
+    <table id="gameTable"></table>
+    <script>
+        const levels = 5;
+        let currentLevel = 1;
+        let boardSize = 3;  // Начальный размер поля 3x3
+        let board = [];
+
+        // Функция для создания поля
+        function createBoard() {
+            const table = document.getElementById('gameTable');
+            table.innerHTML = '';
+            board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
+
+            for (let i = 0; i < boardSize; i++) {
+                const row = document.createElement('tr');
+                for (let j = 0; j < boardSize; j++) {
+                    const cell = document.createElement('td');
+                    cell.classList.add('empty');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.onclick = handleMove;
+                    row.appendChild(cell);
+                }
+                table.appendChild(row);
+            }
+        }
+
+        // Функция обработки хода игрока
+        function handleMove() {
+            const row = this.dataset.row;
+            const col = this.dataset.col;
+
+            if (!board[row][col]) {
+                board[row][col] = '❌';
+                this.classList.remove('empty');
+                this.classList.add('cross');
+                this.textContent = '❌';
+                
+                if (checkVictory('❌')) {
+                    alert('Вы выиграли!');
+                    // Логика победы и перехода на следующий уровень
+                    nextLevel();
+                    return;
+                }
+
+                if (currentLevel < levels) {
+                    aiMove();  // Ход AI
+                }
+            }
+        }
+
+        // Ход AI
+        function aiMove() {
+            let moveMade = false;
+            if (Math.random() > 0.5) {
+                // AI блокирует выигрышный ход игрока
+                for (let i = 0; i < boardSize; i++) {
+                    for (let j = 0; j < boardSize; j++) {
+                        if (!board[i][j]) {
+                            board[i][j] = '⭕';
+                            if (checkVictory('⭕')) {
+                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).textContent = '⭕';
+                                moveMade = true;
+                                break;
+                            }
+                            board[i][j] = null;
+                        }
+                    }
+                    if (moveMade) break;
+                }
+            }
+
+            if (!moveMade) {
+                // AI делает случайный ход
+                while (!moveMade) {
+                    const row = Math.floor(Math.random() * boardSize);
+                    const col = Math.floor(Math.random() * boardSize);
+                    if (!board[row][col]) {
+                        board[row][col] = '⭕';
+                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).textContent = '⭕';
+                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.remove('empty');
+                        document.querySelector(`[data-row="${row}"][data-col="${col}"]`).classList.add('zero');
+                        moveMade = true;
+                    }
+                }
+            }
+        }
+
+        // Проверка на победу
+        function checkVictory(symbol) {
+            for (let i = 0; i < boardSize; i++) {
+                if (board[i].every(cell => cell === symbol)) return true;
+                if (board.every(row => row[i] === symbol)) return true;
+            }
+            if (board.every((row, i) => row[i] === symbol)) return true;
+            if (board.every((row, i) => row[boardSize - i - 1] === symbol)) return true;
+            return false;
+        }
+
+        // Переход на следующий уровень
+        function nextLevel() {
+            if (currentLevel < levels) {
+                currentLevel++;
+                boardSize++;
+                createBoard();
+            } else {
+                alert('Вы выиграли на всех уровнях!');
+                // Логика окончания игры и отправка сообщения в бота
+            }
+        }
+
+        // Запуск игры
+        createBoard();
+    </script>
+</body>
+</html>
