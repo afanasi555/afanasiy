@@ -50,6 +50,7 @@
     <h1>Крестики Нолики</h1>
     <table id="gameTable"></table>
     <button id="restartBtn" style="display:none;" onclick="restartGame()">Играть заново</button>
+    <button id="nextLevelBtn" style="display:none;" onclick="nextLevel()">Следующий уровень</button>
 
     <script>
         const levels = 5;
@@ -94,12 +95,12 @@
                 this.textContent = '❌';
                 
                 if (checkVictory('❌')) {
-                    endGame('Вы выиграли!');
+                    endGame('Вы выиграли!', true);
                     return;
                 }
 
                 if (isBoardFull()) {
-                    endGame('Ничья!');
+                    endGame('Ничья!', false);
                     return;
                 }
 
@@ -113,24 +114,23 @@
 
             let moveMade = false;
 
-            // AI блокирует выигрышный ход игрока с вероятностью 80%
-            if (Math.random() <= 0.8) {
-                for (let i = 0; i < boardSize; i++) {
-                    for (let j = 0; j < boardSize; j++) {
-                        if (!board[i][j]) {
+            // AI блокирует выигрышный ход игрока с приоритетом
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    if (!board[i][j]) {
+                        board[i][j] = '❌';
+                        if (checkVictory('❌')) {
                             board[i][j] = '⭕';
-                            if (checkVictory('⭕')) {
-                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).textContent = '⭕';
-                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.remove('empty');
-                                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.add('zero');
-                                moveMade = true;
-                                break;
-                            }
-                            board[i][j] = null;
+                            document.querySelector(`[data-row="${i}"][data-col="${j}"]`).textContent = '⭕';
+                            document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.remove('empty');
+                            document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.add('zero');
+                            moveMade = true;
+                            break;
                         }
+                        board[i][j] = null;
                     }
-                    if (moveMade) break;
                 }
+                if (moveMade) break;
             }
 
             // Если ход не был заблокирован, AI делает случайный ход
@@ -149,9 +149,9 @@
             }
 
             if (checkVictory('⭕')) {
-                endGame('Вы проиграли!');
+                endGame('Вы проиграли!', false);
             } else if (isBoardFull()) {
-                endGame('Ничья!');
+                endGame('Ничья!', false);
             }
         }
 
@@ -172,10 +172,13 @@
         }
 
         // Окончание игры
-        function endGame(message) {
+        function endGame(message, won) {
             alert(message);
             gameOver = true;
             document.getElementById('restartBtn').style.display = 'block';
+            if (won && currentLevel < levels) {
+                document.getElementById('nextLevelBtn').style.display = 'block';
+            }
         }
 
         // Переход на следующий уровень
@@ -184,9 +187,11 @@
                 currentLevel++;
                 boardSize++;
                 gameOver = false;
+                document.getElementById('restartBtn').style.display = 'none';
+                document.getElementById('nextLevelBtn').style.display = 'none';
                 createBoard();
             } else {
-                alert('Вы выиграли на всех уровнях!');
+                alert('Вы прошли все уровни!');
                 // Логика окончания игры и отправка сообщения в бота
             }
         }
@@ -197,6 +202,7 @@
             boardSize = 3;
             gameOver = false;
             document.getElementById('restartBtn').style.display = 'none';
+            document.getElementById('nextLevelBtn').style.display = 'none';
             createBoard();
         }
 
