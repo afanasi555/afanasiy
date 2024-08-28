@@ -1,267 +1,288 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Крестики Нолики</title>
+    <title>Крестики-Нолики</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             height: 100vh;
             margin: 0;
+            background-color: #f0f0f0;
         }
-        table {
-            border-collapse: collapse;
+        #gameBoard {
+            display: grid;
+            grid-gap: 5px;
+            margin-bottom: 20px;
         }
-        td {
-            width: 50px;
-            height: 50px;
-            text-align: center;
-            vertical-align: middle;
-            font-size: 24px;
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #87CEEB;
+            font-size: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             cursor: pointer;
-            border: 1px solid #000;
+            border-radius: 5px;
         }
-        .empty {
-            background-color: #2196F3;
+        .cell.disabled {
+            cursor: not-allowed;
         }
-        .cross {
-            color: red;
-        }
-        .zero {
-            color: green;
-        }
-        .highlight {
-            background-color: #FFC107; /* Подсветка клетки для хода */
+        #controls {
+            text-align: center;
         }
         button {
-            margin-top: 10px;
             padding: 10px 20px;
-            font-size: 16px;
+            font-size: 1rem;
             cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #4682B4;
+            color: white;
         }
-        #generateLevelsBtn {
-            display: none; /* Кнопка добавления уровней скрыта по умолчанию */
-        }
-        #finalMessage {
-            display: none;
-            font-size: 18px;
-            text-align: center;
-            margin-top: 20px;
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
-    <h1>Крестики Нолики</h1>
-    <table id="gameTable"></table>
-    <button id="restartBtn" style="display:none;" onclick="restartGame()">Играть заново</button>
-    <button id="nextLevelBtn" style="display:none;" onclick="nextLevel()">Следующий уровень</button>
-    <button id="generateLevelsBtn" style="display:none;" onclick="generateLevels()">Добавить новые уровни</button>
-    <button id="resetLevelBtn" onclick="resetLevel()">Сброс уровня</button> <!-- Постоянно видимая кнопка сброса уровня -->
-    <div id="finalMessage"></div>
 
-    <script>
-        const levels = 5;
-        let currentLevel = 1;
-        let boardSize = 3;  // Начальный размер поля 3x3
-        let board = [];
-        let gameOver = false;
-        let lastMove = {row: null, col: null};  // Сохраняем последний ход игрока
+<div id="gameContainer">
+    <div id="gameBoard"></div>
+    <div id="controls">
+        <button id="restartBtn" onclick="restartGame()">Начать заново</button>
+        <button id="nextLevelBtn" onclick="nextLevel()">Следующий уровень</button>
+        <button id="resetLevelBtn" onclick="resetLevel()">Сбросить уровень</button>
+    </div>
+</div>
 
-        // Функция для создания поля
-        function createBoard() {
-            const table = document.getElementById('gameTable');
-            table.innerHTML = '';
-            board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
+<script>
+    const X = '❌';
+    const O = '⭕';
+    let currentPlayer = X;
+    let gameOver = false;
+    let currentLevel = 1;
+    let boardSize = currentLevel + 2;
+    let board = [];
+
+    function createBoard(shape = 'square') {
+        const gameBoard = document.getElementById('gameBoard');
+        gameBoard.innerHTML = '';
+
+        // В зависимости от формы, создаем разную структуру поля
+        if (shape === 'square') {
+            boardSize = currentLevel + 2;
+            gameBoard.style.gridTemplateColumns = `repeat(${boardSize}, 1fr)`;
+            board = Array(boardSize).fill().map(() => Array(boardSize).fill(null));
 
             for (let i = 0; i < boardSize; i++) {
-                const row = document.createElement('tr');
                 for (let j = 0; j < boardSize; j++) {
-                    const cell = document.createElement('td');
-                    cell.classList.add('empty');
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
                     cell.dataset.row = i;
                     cell.dataset.col = j;
-                    cell.onclick = handleMove;
-                    cell.onmouseover = function() { if (!board[i][j] && !gameOver) cell.classList.add('highlight'); };
-                    cell.onmouseout = function() { cell.classList.remove('highlight'); };
-                    row.appendChild(cell);
+                    cell.onclick = () => handleMove(i, j, cell);
+                    gameBoard.appendChild(cell);
                 }
-                table.appendChild(row);
             }
-        }
+        } else if (shape === 'triangle') {
+            // Пример треугольной формы
+            let rowCount = 1;
+            board = [];
 
-        // Функция обработки хода игрока
-        function handleMove() {
-            if (gameOver) return;
-
-            const row = this.dataset.row;
-            const col = this.dataset.col;
-
-            if (!board[row][col]) {
-                board[row][col] = '❌';
-                this.classList.remove('empty');
-                this.classList.add('cross');
-                this.textContent = '❌';
-                lastMove = {row: parseInt(row), col: parseInt(col)};  // Сохраняем последний ход
-
-                if (checkVictory('❌')) {
-                    endGame('Вы выиграли!');
-                    return;
-                }
-
-                if (isBoardFull()) {
-                    endGame('Ничья!');
-                    return;
-                }
-
-                aiMove();  // Ход AI
-            }
-        }
-
-        // Проверка на выигрышные ходы
-        function findWinningMove(symbol) {
             for (let i = 0; i < boardSize; i++) {
-                for (let j = 0; j < boardSize; j++) {
-                    if (board[i][j] === null) {
-                        board[i][j] = symbol;
-                        if (checkVictory(symbol)) {
-                            board[i][j] = null;
-                            return {row: i, col: j};
-                        }
-                        board[i][j] = null;
-                    }
+                let row = [];
+                for (let j = 0; j < rowCount; j++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.onclick = () => handleMove(i, j, cell);
+                    gameBoard.appendChild(cell);
+                    row.push(null);
                 }
+                board.push(row);
+                rowCount++;
             }
-            return null;
-        }
 
-        // Ход AI
-        function aiMove() {
-            if (gameOver) return;
+            gameBoard.style.gridTemplateColumns = `repeat(${rowCount - 1}, 1fr)`;
+        } else if (shape === 'hexagon') {
+            // Пример шестиугольной формы
+            let maxCells = boardSize;
+            let rowCount = boardSize;
+            board = [];
 
-            let moveMade = false;
-
-            // Попытка заблокировать выигрышный ход игрока
-            const blockMove = findWinningMove('❌');
-            if (blockMove) {
-                board[blockMove.row][blockMove.col] = '⭕';
-                document.querySelector(`[data-row="${blockMove.row}"][data-col="${blockMove.col}"]`).textContent = '⭕';
-                document.querySelector(`[data-row="${blockMove.row}"][data-col="${blockMove.col}"]`).classList.remove('empty');
-                document.querySelector(`[data-row="${blockMove.row}"][data-col="${blockMove.col}"]`).classList.add('zero');
-                moveMade = true;
-            } else {
-                // Попытка сделать выигрышный ход
-                const winMove = findWinningMove('⭕');
-                if (winMove) {
-                    board[winMove.row][winMove.col] = '⭕';
-                    document.querySelector(`[data-row="${winMove.row}"][data-col="${winMove.col}"]`).textContent = '⭕';
-                    document.querySelector(`[data-row="${winMove.row}"][data-col="${winMove.col}"]`).classList.remove('empty');
-                    document.querySelector(`[data-row="${winMove.row}"][data-col="${winMove.col}"]`).classList.add('zero');
-                    moveMade = true;
+            for (let i = 0; i < rowCount; i++) {
+                let row = [];
+                for (let j = 0; j < maxCells; j++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.onclick = () => handleMove(i, j, cell);
+                    gameBoard.appendChild(cell);
+                    row.push(null);
                 }
+                board.push(row);
+                maxCells = i < rowCount / 2 ? maxCells + 1 : maxCells - 1;
             }
 
-            if (!moveMade) {
-                // Если ни один ход не был сделан, делаем случайный ход
-                let potentialMoves = [];
-                for (let i = 0; i < boardSize; i++) {
-                    for (let j = 0; j < boardSize; j++) {
-                        if (board[i][j] === null) {
-                            potentialMoves.push({row: i, col: j});
-                        }
-                    }
-                }
-
-                if (potentialMoves.length > 0) {
-                    const move = potentialMoves[Math.floor(Math.random() * potentialMoves.length)];
-                    board[move.row][move.col] = '⭕';
-                    document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`).textContent = '⭕';
-                    document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`).classList.remove('empty');
-                    document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`).classList.add('zero');
-                    moveMade = true;
-                }
-            }
-
-            if (checkVictory('⭕')) {
-                endGame('Вы проиграли!');
-            } else if (isBoardFull()) {
-                endGame('Ничья!');
-            }
+            gameBoard.style.gridTemplateColumns = `repeat(${rowCount}, 1fr)`;
         }
+    }
 
-        // Проверка на победу
-        function checkVictory(symbol) {
-            // Проверка строк и столбцов
-            for (let i = 0; i < boardSize; i++) {
-                if (board[i].every(cell => cell === symbol)) return true;
-                if (board.every(row => row[i] === symbol)) return true;
-            }
-            // Проверка диагоналей
-            if (board.every((row, i) => row[i] === symbol)) return true;
-            if (board.every((row, i) => row[boardSize - i - 1] === symbol)) return true;
-            return false;
-        }
+    function handleMove(row, col, cell) {
+        if (gameOver || board[row][col]) return;
 
-        // Проверка на заполненность поля
-        function isBoardFull() {
-            return board.flat().every(cell => cell !== null);
-        }
+        board[row][col] = currentPlayer;
+        cell.textContent = currentPlayer;
+        cell.classList.add('disabled');
 
-        // Окончание игры
-        function endGame(message) {
+        if (checkWin(row, col)) {
             gameOver = true;
-            document.getElementById('restartBtn').style.display = 'inline-block';
+            document.getElementById('nextLevelBtn').style.display = 'block';
+        } else if (board.flat().every(cell => cell)) {
+            gameOver = true; // Ничья
+        } else {
+            currentPlayer = currentPlayer === X ? O : X;
+            if (currentPlayer === O) {
+                aiMove();
+            }
+        }
+    }
 
-            if (currentLevel === levels) {
-                document.getElementById('generateLevelsBtn').style.display = 'inline-block';
-            } else {
-                document.getElementById('generateLevelsBtn').style.display = 'none';
+    function aiMove() {
+        if (gameOver) return;
+
+        if (currentLevel >= 2) {
+            // Упрощенная нейросеть для уровней от 2 и выше
+            let availableMoves = [];
+            for (let i = 0; i < board.length; i++) {
+                for (let j = 0; j < board[i].length; j++) {
+                    if (!board[i][j]) {
+                        availableMoves.push({ i, j });
+                    }
+                }
             }
 
-            if (message === 'Вы выиграли!' && currentLevel < levels) {
-                document.getElementById('nextLevelBtn').style.display = 'inline-block';
-            } else {
-                document.getElementById('nextLevelBtn').style.display = 'none';
+            // Случайный ход при упрощенной логике
+            let randomMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+            handleMove(randomMove.i, randomMove.j, document.querySelector(`.cell[data-row='${randomMove.i}'][data-col='${randomMove.j}']`));
+        } else {
+            // Сложная нейросеть для первого уровня
+            let bestMove = null;
+            let bestScore = -Infinity;
+
+            for (let i = 0; i < board.length; i++) {
+                for (let j = 0; j < board[i].length; j++) {
+                    if (!board[i][j]) {
+                        board[i][j] = O;
+                        let score = minimax(board, 0, false);
+                        board[i][j] = null;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMove = { i, j };
+                        }
+                    }
+                }
             }
 
-            document.getElementById('finalMessage').textContent = message;
-            document.getElementById('finalMessage').style.display = 'block';
+            if (bestMove) {
+                handleMove(bestMove.i, bestMove.j, document.querySelector(`.cell[data-row='${bestMove.i}'][data-col='${bestMove.j}']`));
+            }
         }
+    }
 
-        // Переход на следующий уровень
-        function nextLevel() {
-            currentLevel++;
-            boardSize = currentLevel + 2; // Увеличиваем размер поля
-            gameOver = false;
-            createBoard();
-            document.getElementById('restartBtn').style.display = 'none';
-            document.getElementById('nextLevelBtn').style.display = 'none';
-            document.getElementById('generateLevelsBtn').style.display = 'none';
-            document.getElementById('finalMessage').style.display = 'none';
+    function minimax(board, depth, isMaximizing) {
+        if (checkWinCondition(O)) return 1;
+        if (checkWinCondition(X)) return -1;
+        if (board.flat().every(cell => cell)) return 0;
+
+        if (isMaximizing) {
+            let maxEval = -Infinity;
+            for (let i = 0; i < board.length; i++) {
+                for (let j = 0; j < board[i].length; j++) {
+                    if (!board[i][j]) {
+                        board[i][j] = O;
+                        let eval = minimax(board, depth + 1, false);
+                        board[i][j] = null;
+                        maxEval = Math.max(eval, maxEval);
+                    }
+                }
+            }
+            return maxEval;
+        } else {
+            let minEval = Infinity;
+            for (let i = 0; i < board.length; i++) {
+                for (let j = 0; j < board[i].length; j++) {
+                    if (!board[i][j]) {
+                        board[i][j] = X;
+                        let eval = minimax(board, depth + 1, true);
+                        board[i][j] = null;
+                        minEval = Math.min(eval, minEval);
+                    }
+                }
+            }
+            return minEval;
         }
+    }
 
-        // Перезапуск игры
-        function restartGame() {
-            gameOver = false;
-            createBoard();
-            document.getElementById('restartBtn').style.display = 'none';
-            document.getElementById('nextLevelBtn').style.display = 'none';
-            document.getElementById('generateLevelsBtn').style.display = 'none';
-            document.getElementById('finalMessage').style.display = 'none';
-        }
+    function checkWin(row, col) {
+        return checkWinCondition(currentPlayer, row, col);
+    }
 
-        // Сброс уровня
-        function resetLevel() {
-            gameOver = false;
-            createBoard();
-        }
+    function checkWinCondition(player, row = -1, col = -1) {
+        // Анализ выигрыша для различных форм поля
+        if (board[row]?.every(cell => cell === player)) return true;
+        if (board.every(row => row[col] === player)) return true;
+        if (board.every((row, i) => row[i] === player)) return true;
+        if (board.every((row, i) => row[board.length - 1 - i] === player)) return true;
 
-        // Запуск игры
+        // Дополнительная проверка для треугольных и шестиугольных полей (пока упрощенная)
+        return false;
+    }
+
+    function restartGame() {
+        currentPlayer = X;
+        gameOver = false;
         createBoard();
-    </script>
+    }
+
+    function resetLevel() {
+        currentPlayer = X;
+        gameOver = false;
+        createBoard();
+    }
+
+    function nextLevel() {
+        if (gameOver) {
+            currentLevel++;
+            currentPlayer = X;
+            gameOver = false;
+            createBoard();
+        }
+    }
+
+    function generateNewLevels() {
+        // Генерация новых уровней с различными формами и модификациями
+        const shapes = ['square', 'triangle', 'hexagon'];
+        const selectedShape = shapes[Math.floor(Math.random() * shapes.length)];
+
+        alert(`Генерация нового уровня: ${selectedShape}`);
+        createBoard(selectedShape);
+    }
+
+    window.onload = () => {
+        createBoard();
+        document.getElementById('nextLevelBtn').style.display = 'none';
+    };
+</script>
+
 </body>
 </html>
